@@ -38,17 +38,27 @@ app.use("/sales", salesRoutes)
 
 /* MONGOOSE SETUP */
 const PORT = process.env.PORT || 9000;
+
+/* Seed the sample data only when the database is empty (e.g. a brand-new cluster) */
+const seedDatabaseIfEmpty = async () => {
+  const existingUsers = await User.countDocuments();
+  if (existingUsers > 0) return;
+
+  console.log("Empty database detected - seeding sample data...");
+  await Promise.all([
+    OverallStat.insertMany(dataOverallStat),
+    Product.insertMany(dataProduct),
+    ProductStat.insertMany(dataProductStat),
+    Transaction.insertMany(dataTransaction),
+    User.insertMany(dataUser),
+    AffiliateStat.insertMany(dataAffiliateStat),
+  ]);
+  console.log("Sample data seeded successfully");
+};
+
 mongoose.connect(process.env.MONGO_URL)
-  .then(() => {
-    app.listen(PORT, () => console.log(`Server Port: ${PORT}`))
-
-    /* ONLY ADD DATA ONE TIME! */
-    //OverallStat.insertMany(dataOverallStat);
-    //Product.insertMany(dataProduct);
-    //ProductStat.insertMany(dataProductStat)
-    //Transaction.insertMany(dataTransaction)
-    //User.insertMany(dataUser);
-    //AffiliateStat.insertMany(dataAffiliateStat);
-
+  .then(async () => {
+    await seedDatabaseIfEmpty();
+    app.listen(PORT, () => console.log(`Server Port: ${PORT}`));
   })
-  .catch((error) => console.log(`${error} did not connect!`))
+  .catch((error) => console.log(`${error} did not connect!`));
